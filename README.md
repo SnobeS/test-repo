@@ -5,12 +5,12 @@
 - 2
 - 3
 - 4
-# Toinen otsikko
+
 ### Tässä on bold ja italic tekstiä
 
 #### *Italic teksti*
 #### **Bold teksti**
 #### ***Bold ja italic teksti***
 
-## Tässä on linkki
-[link](https://www.example.com/my%20great%20page)
+### Tässä on linkki
+[Paina tästä!](https://www.example.com/my%20great%20page)
