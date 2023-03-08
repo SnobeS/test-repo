@@ -1,0 +1,11 @@
+@media(min-width: 320px) {
+    .teksti1 {
+        font-size: 100%;
+        }
+}
+
+@media(min-width: 320px) {
+    .teksti2 {
+        font-size: 75%;
+        }
+    }

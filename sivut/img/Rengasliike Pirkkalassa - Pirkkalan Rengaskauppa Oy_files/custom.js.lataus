@@ -1,0 +1,382 @@
+function resizeLaatikot(luokka) {
+	var korkein = 0,
+		divit = [],
+		$el,
+		$rivi;
+
+	$(".lista-rivi").each(function() {		
+		$rivi = $(this),
+		korkein = 0,
+		divit = [];		
+	
+		$rivi.find(luokka).each(function() {
+			$el = $(this);
+			
+			if($el.closest('.gridi').css('float') != "none") {
+				korkein = Math.max(korkein, $el.height());
+				divit.push($el);
+			}
+		});
+		
+		for(i = 0; i < divit.length; i++) {
+			//divit[i].animate({height:korkein},350);
+			divit[i].height(korkein);
+		}
+	});
+}
+
+function resetLaatikot(luokka) {
+	$(".tuote-wrap "+luokka).each(function() {
+		$(this).css('height', '');
+	});
+}
+
+function handleLaatikot(delay) {
+	resetLaatikot(".tuote-cont");
+
+	if(delay == 1) {
+		setTimeout(function () {
+			resizeLaatikot(".tuote-cont");
+		}, 500);
+	}
+	else {
+		resizeLaatikot(".tuote-cont");
+	}
+}
+
+function handleNapit() {
+	$(".nappi").each(function() {
+		if($(this).hasClass("huomio-pois") == 0) {
+			$(this).append('<span class="huomio-nuoli"><span class="huomio-reunus"></span></span>');
+		}
+	});
+}
+
+function loadRefresh(url, id) {
+	$('#'+id+' #load-pagination').load(url+" #"+id+" #load-pagination .pagination", function() {
+		
+		var $uusiSivu = $('#'+id+' #preloadNext');
+		
+		$uusiSivu.load(url+" #"+id+" #load-first .load-wrapper", function () {	
+			var $paivitaTama = $('#'+id+' > #load-first .load-wrapper');
+			
+			$paivitaTama.html($uusiSivu.html());
+			$('#'+id+' .loading').fadeOut('fast');
+
+			$(".sivutus .pagination span a").on("click", function(event) {
+				event.preventDefault();
+				var passURL = $(this).attr("href");
+				var $passID = $(this).closest(".sivutus");
+				$passID.find(".loading").fadeIn('fast');
+		
+				loadRefresh(passURL, $passID.attr("id"));
+			});
+		});
+	});
+}
+
+
+function equalHeight(obj){
+
+        var heightArray = obj.children(".tuote-cont").map( function(){
+
+                return  $(this).height();
+
+                }).get();
+
+        var maxHeight = Math.max.apply( Math, heightArray);
+
+        obj.children(".tuote-cont").height(maxHeight);
+
+}
+function equalHeight2(obj){
+
+        var heightArray = obj.children(".boxi").map( function(){
+
+                return  $(this).height();
+
+                }).get();
+
+        var maxHeight = Math.max.apply( Math, heightArray);
+
+        obj.children(".boxi").height(maxHeight);
+
+}
+
+
+
+
+$(document).ready(function () {
+	var resizeTimeout;
+
+	setTimeout(function() {
+	$('.tuote-wrap').each(function(){  
+        var highestBox = 0;
+
+        $(this).find('.boxi').each(function(){
+            if($(this).height() > highestBox){  
+                highestBox = $(this).outerHeight();  
+            }
+        })
+		
+        $(this).find('.boxi:not(.ots, ots-iso)').height(highestBox);
+    }); 
+	},1000);
+	
+	
+	handleNapit();
+	handleLaatikot(1);
+	
+	$(window).resize(function () {
+		window.clearTimeout(resizeTimeout);
+		resizeTimeout = window.setTimeout(function() {
+			handleLaatikot(0);
+		}, 500);
+		
+	});
+	
+	$("a.call").prepend('<i class="icon-phone"></i>');
+	$("a.email").prepend('<i class="icon-envelope"></i>');
+
+	$(".sivutus .pagination span a").on("click", function(event) {
+		event.preventDefault();
+		var passURL = $(this).attr("href");
+		var $passID = $(this).closest(".sivutus");
+		
+		$passID.find(".loading").fadeIn('fast');
+	
+		loadRefresh(passURL, $passID.attr("id"));
+	});
+
+	$(".dropdown-icon").on("click", function(event) {
+		event.preventDefault();
+		$(this).parent().toggleClass("openSub");
+	});
+	
+	var valikkoTimeout;
+	$(".valikko-avaa").on("click", function(event) {
+		event.preventDefault();
+		window.clearTimeout(valikkoTimeout);
+		valikkoTimeout = window.setTimeout(function() {
+			$(".valikko-lista").fadeToggle("fast").toggleClass("navOpened");
+			$(".valikko-avaa").toggleClass("avattu");
+		}, 100);
+		
+	});
+	
+	$(".laatikot .laatikko .otsikko").on("click", function(event) {
+		if($(this).parent().hasClass("alwaysOpen") == 0) {
+			$(this).parent().toggleClass("imOpen");
+		}
+	});
+	
+	$(".call").each(function() {
+		var call = $(this).attr("href");
+		call = call.replace("%20", "");
+		$(this).attr("href",call);
+	});
+	
+	
+	$(".kone table").hide();
+	$(".kone .nayta").on("click", function(event) {
+		event.preventDefault();
+		$(this).parents(".kone").find("table").toggle();
+	});
+	
+	var valikkoTimeout;
+	$(".avaaNavi").on("click", function(event) {
+		event.preventDefault();
+		window.clearTimeout(valikkoTimeout);
+		valikkoTimeout = window.setTimeout(function() {
+			$(".valikko-lista").fadeToggle("fast").toggleClass("navOpened");
+			$(".valikko-avaa").toggleClass("avattu");
+			
+		}, 100);
+		$("html, body").animate({ scrollTop: 105 }, 500);
+		
+	});
+	$(".valikko-lista li").each(function() {
+		if($(window).innerWidth() <= 1024) {
+			$(".submenu").hide();
+			$(".avaaSubnav", this).on("click", function() {
+				$(".submenu").hide();
+				$(".avaaSubnav").text("+");
+				$(this).next(".submenu").show(), 800;
+				$(this).text("-");
+			});
+		};	
+	});
+
+	$(".niksi").each(function() {
+		
+		$("h2", this).on("click", function(event) {
+			event.preventDefault();
+			$(".plus", this).toggle();
+			$(".minus", this).toggle();
+			$(this).next(".niksi-sisalto").slideToggle("fast");
+			$(this).parents(".niksi").toggleClass("niksi-auki");
+		});
+	});
+	
+	var $nav = $('#top');
+	
+	if($(window).width() > 1) {
+		$(window).bind("scroll", function(){
+			var navheight = $("#top").height(); 
+			
+				if($(window).scrollTop() > 200) {
+					$("#top").css("z-index", "14000");
+					$("#top").removeClass("pois");
+					$("#top").addClass("fixed");
+
+				}
+				else {
+
+					$("#top").removeClass("fixed");
+					$("#top").addClass("pois");
+					$("#top").css("z-index", "1000");
+				}
+
+		});
+	};
+	
+	
+	if($(window).width() < 600) {
+	$(".boxi.ots").each(function (index) {
+		$(this).nextUntil(".boxi.ots").wrapAll("<div class='boxiSet'></div>");
+		$(".boxiSet").hide();
+		
+		$(this).on("click", function() {
+			$(this).toggleClass("aaki");
+			$(this).next(".boxiSet").toggle();
+		});
+	});
+	};
+	
+	
+
+if($("body").hasClass("sivu88")) {
+
+	$(".palsta.luokka a[href*='premium']").attr("href", "/renkaat/premium/premium-kesarenkaat.html");
+	$(".palsta.luokka a[href*='quality']").attr("href", "/renkaat/quality/quality-kesarenkaat.html");
+	$(".palsta.luokka a[href*='budget']").attr("href", "/renkaat/budget/budget-kesarenkaat.html");
+		
+}
+if($("body").hasClass("sivu106")) {
+	$(".palsta.luokka a[href*='premium']").attr("href", "/renkaat/premium/premium-nastarenkaat.html");
+	$(".palsta.luokka a[href*='quality']").attr("href", "/renkaat/quality/quality-nastarenkaat.html");
+	$(".palsta.luokka a[href*='budget']").attr("href", "/renkaat/budget/budget-nastarenkaat.html");
+
+}
+if($("body").hasClass("sivu105")) {
+	$(".palsta.luokka a[href*='premium']").attr("href", "/renkaat/premium/premium-kitkarenkaat.html");
+	$(".palsta.luokka a[href*='quality']").attr("href", "/renkaat/quality/quality-kitkarenkaat.html");
+	$(".palsta.luokka a[href*='budget']").attr("href", "/renkaat/budget/budget-kitkarenkaat.html");
+
+}
+
+$(".vanne h3").on("click", function() {
+		$(this).next("p").slideToggle("fast");
+	});
+
+$(".palsta.tarjous a").each(function() {
+
+	var href = document.location.href;
+	var lastPathSegment = href.substr(href.lastIndexOf('/') + 1);
+
+	var lastSplit = lastPathSegment.replace(".html", "");
+
+	var newLink = $(this).attr("href") + "?renkaat=" + lastSplit;
+
+	$(this).attr("href",newLink);
+
+});
+
+
+var getUrlParameter = function getUrlParameter(sParam) {
+    var sPageURL = window.location.search.substring(1),
+        sURLVariables = sPageURL.split('&'),
+        sParameterName,
+        i;
+
+    for (i = 0; i < sURLVariables.length; i++) {
+        sParameterName = sURLVariables[i].split('=');
+
+        if (sParameterName[0] === sParam) {
+            return typeof sParameterName[1] === undefined ? true : decodeURIComponent(sParameterName[1]);
+        }
+    }
+    return false;
+};
+$(".palsta.premium").append("<div style='position:absolute;top:-150px;' id='premium'></div>");
+	$(".palsta.quality").append("<div style='position:absolute;top:-150px;' id='quality'></div>");
+	$(".palsta.budget").append("<div style='position:absolute;top:-150px;' id='budget'></div>");
+
+var renkaat = getUrlParameter('renkaat');
+
+
+if(renkaat.indexOf("premium") >= 0) {	$("input[value=Premium]").attr("checked", "checked");}
+if(renkaat.indexOf("quality") >= 0) {	$("input[value=Quality]").attr("checked", "checked");}
+if(renkaat.indexOf("budget") >= 0) {	$("input[value=Budget]").attr("checked", "checked");}
+
+
+
+if(renkaat.indexOf("kesarenkaat") >= 0) {	$("input[value=Kesärenkaat]").attr("checked", "checked");}
+if(renkaat.indexOf("nastarenkaat") >= 0) {	$("input[value=Nastarenkaat]").attr("checked", "checked");}
+if(renkaat.indexOf("kitkarenkaat") >= 0) {	$("input[value=Kitkarenkaat]").attr("checked", "checked");}
+
+	
+	$('.arrow-wrap a').click(function(){
+    $('html, body').animate({
+        scrollTop: $( $.attr(this, 'href') ).offset().top-59
+    }, 500);
+    return false;
+	
+	
+});
+
+	$(document).ready(function() {
+
+  //window and animation items
+  var animation_elements = $.find('.animation-element');
+  var web_window = $(window);
+
+  //check to see if any animation containers are currently in view
+  function check_if_in_view() {
+    //get current window information
+    var window_height = web_window.height();
+    var window_top_position = web_window.scrollTop();
+    var window_bottom_position = (window_top_position + window_height);
+
+    //iterate through elements to see if its in view
+    $.each(animation_elements, function() {
+
+      //get the element sinformation
+      var element = $(this);
+      var element_height = $(element).outerHeight();
+      var element_top_position = $(element).offset().top;
+      var element_bottom_position = (element_top_position + element_height);
+
+      //check to see if this current container is visible (its viewable if it exists between the viewable space of the viewport)
+      if ((element_bottom_position >= window_top_position) && (element_top_position <= window_bottom_position)) {
+        element.addClass('in-view');
+      } else {
+        element.removeClass('in-view');
+      }
+    });
+
+  }
+
+	
+
+  //on or scroll, detect elements in view
+  $(window).on('scroll resize', function() {
+      check_if_in_view()
+    })
+    //trigger our scroll event on initial load
+  $(window).trigger('scroll');
+
+});
+	
+});
+/*! A fix for the iOS orientationchange zoom bug. Script by @scottjehl, rebound by @wilto.MIT / GPLv2 License.*/(function(a){function m(){d.setAttribute("content",g),h=!0}function n(){d.setAttribute("content",f),h=!1}function o(b){l=b.accelerationIncludingGravity,i=Math.abs(l.x),j=Math.abs(l.y),k=Math.abs(l.z),(!a.orientation||a.orientation===180)&&(i>7||(k>6&&j<8||k<8&&j>6)&&i>5)?h&&n():h||m()}var b=navigator.userAgent;if(!(/iPhone|iPad|iPod/.test(navigator.platform)&&/OS [1-5]_[0-9_]* like Mac OS X/i.test(b)&&b.indexOf("AppleWebKit")>-1))return;var c=a.document;if(!c.querySelector)return;var d=c.querySelector("meta[name=viewport]"),e=d&&d.getAttribute("content"),f=e+",maximum-scale=1.0",g=e+",maximum-scale=2.0",h=!0,i,j,k,l;if(!d)return;a.addEventListener("orientationchange",m,!1),a.addEventListener("devicemotion",o,!1)})(this); 

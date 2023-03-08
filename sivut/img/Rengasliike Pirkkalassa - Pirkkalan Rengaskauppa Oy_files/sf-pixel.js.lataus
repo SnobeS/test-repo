@@ -1,0 +1,1465 @@
+
+var sfPixel = {
+  loadScript2(url, callback) {
+    var normal = 1;
+    // If user has require js, load static dependencies.
+    if (typeof requirejs !== 'undefined' && requirejs || typeof Prototype !== 'undefined') {
+      if (url.indexOf("firebase") != -1 || url.indexOf("fuse") != -1) {
+        url = 'https://app.serviceform.com/analytics/sf-dependencies.js';
+        normal = 0;
+      } else {
+      }
+    } else if (url.indexOf("googleapis") != -1) {
+      normal = 0;
+    }
+
+    if (!document.getElementById(url)) {
+      var origurl = url;
+      if (normal) {
+        url = url + sfPixel.version;
+      }
+
+      var scriptTag = document.createElement('script');
+      scriptTag.setAttribute('type', 'text/javascript');
+      scriptTag.setAttribute('src', url);
+      scriptTag.setAttribute('id', origurl);
+      scriptTag.setAttribute('charset', 'UTF-8');
+
+      scriptTag.async = true;
+
+      if (scriptTag.readyState) {
+        scriptTag.onreadystatechange = function () {
+          if (this.readyState === 'complete' || this.readyState === 'loaded') {
+            callback();
+          }
+        };
+      } else {
+        scriptTag.onload = callback;
+      }
+
+      (document.getElementsByTagName('head')[0] || document.documentElement).appendChild(scriptTag);
+    } else {
+      callback();
+    }
+  },
+  devMode(){
+    sfPixel.sfSetPixelCookie('sfdevmode', '1', 0.5);
+    window.location.reload();
+  },
+  init: function () {
+
+    sfPixel.rootUrl = 'https://cdn.serviceform.com/';
+    sfPixel.analyticsRoot = 'https://cdn.serviceform.com/serviceform-tools/';
+    var todayDate = new Date().toISOString().slice(0, 10);
+    sfPixel.version = "?v7" + todayDate;
+
+    var devMode = 0;
+
+    // If cookie for dev mode is set, load URL's from dev.
+    var dev = sfPixel.sfGetPixelCookie('sfdevmode');
+    if (typeof dev === 'undefined' || dev === '') {
+    } else {
+      devMode = 1;
+    }
+
+    // For local testing.
+    if (window.location.href.indexOf("sf-pixel-test") != -1) {
+      sfPixel.rootUrl = '/';
+      sfPixel.analyticsRoot = '';
+    } else if (window.location.href.indexOf("-servicehire.pantheonsite") != -1 ||
+      window.location.href.indexOf("dev.netstory") != -1) {
+      sfPixel.rootUrl = '/';
+      sfPixel.analyticsRoot = 'https://dev-cdn.serviceform.com/serviceform-tools/';
+    } else if(devMode){
+      sfPixel.rootUrl = 'https://dev-cdn.serviceform.com/';
+      sfPixel.analyticsRoot = 'https://dev-cdn.serviceform.com/serviceform-tools/';
+    }
+
+    // Check if cookie exists. If exists use session ID.
+    var session = sfPixel.sfGetPixelCookie('sfpxs');
+    if (typeof session === 'undefined' || session === '') {
+      sfPixel.newSession();
+    } else {
+      sfPixel.loadSession(session);
+    }
+
+    sfPixel.ns();
+  },
+  onePageMode: function () {
+    if (typeof sfPixel.onePageListener === 'undefined') {
+      sfPixel.onePageListener = 1;
+
+      (function() {
+        var pushState = history.pushState;
+        var replaceState = history.replaceState;
+
+        history.pushState = function() {
+          pushState.apply(history, arguments);
+          window.dispatchEvent(new Event('pushstate'));
+          window.dispatchEvent(new Event('locationchange'));
+        };
+
+        history.replaceState = function() {
+          replaceState.apply(history, arguments);
+          window.dispatchEvent(new Event('replacestate'));
+        };
+
+        window.addEventListener('popstate', function() {
+          window.dispatchEvent(new Event('locationchange'))
+        });
+      })();
+
+      setTimeout(function () {
+        window.addEventListener('locationchange', function(){
+          sfPixel.reloadPixelSession();
+        });
+      }, 3000);
+
+    }
+  },
+  reloadPixelSession: function () {
+
+    if (typeof window.sfChatLivechat === 'undefined' || window.sfChatLivechat !== 1) {
+      if (typeof sf_sdk !== 'undefined') {
+        sf_sdk.destroy();
+      }
+      window.sfInitedPopup = 0;
+      window.sfInitedInline = 0;
+      window.sfInitedBot = 0;
+      window.sfCodeDisable = 0;
+      window.sfInitedLeadbar = 0;
+
+      setTimeout(function () {
+        sfPixel.getAndRunRules();
+      }, 3000);
+    }
+  },
+  newSession: function () {
+
+    // Append to elasticsearch instead of deleting.
+    var referrer = document.referrer;
+
+    // Start pixel.
+    var event = new Date();
+    event = event.toISOString();
+    var session = 'sid-' + sfPixel.generateId(16);
+
+    sfPixel.sfSetPixelCookie('sfpxs', session, 14);
+
+    // If no session init a new session.
+    sfPixel.stats = {
+      pid: window.sfpid,
+      session: session,
+      referrer: referrer,
+      pageviews: 1,
+      score: 0,
+      chatOpen: 0,
+      activeChat: "",
+      activeChatCid: "",
+      mode: 'closed',
+      prompt: 0,
+      date: event,
+      type: 'pixel-statistics',
+      lead: 0,
+      page: [],
+      conversations: [],
+      clickedElements: [],
+      formInteractions: [],
+      formSubmissions: [],
+      serviceformSubmissions: [],
+      chatbotInteractions: [],
+      chatbotSubmissions: [],
+      livechats: [],
+      customerName: '',
+      customerCompany: '',
+      customerIp: '',
+      customerPhone: '',
+      country: '',
+      ip: '',
+      amount: 0,
+      cart: [],
+      seconds: 0,
+      errorCount: 0,
+      errors: []
+    };
+
+    sfPixel.actions();
+
+    sfPixel.post();
+  },
+  initAdv: function (type, callback) {
+    if (typeof sfInitedAdv === 'undefined' || sfInitedAdv !== 1) {
+      window.sfInitedAdv = 1;
+      sfPixel.loadScript2('https://www.gstatic.com/firebasejs/7.6.1/firebase-app.js', loadFirestore);
+
+      function loadFirestore() {
+        sfPixel.loadScript2('https://www.gstatic.com/firebasejs/7.6.1/firebase-firestore.js', loadFirebase);
+      }
+
+      function loadFirebase() {
+        sfPixel.loadScript2('https://www.gstatic.com/firebasejs/7.6.1/firebase-database.js', initTracking);
+      }
+
+      function initTracking() {
+        if (!firebase.apps.length) {
+          firebase.initializeApp({
+            apiKey: "AIzaSyC-vEDTDf7ET3yY8jUFjgvBizTDQYRQi40",
+            authDomain: "ecstatic-fiber-261015.firebaseapp.com",
+            projectId: "ecstatic-fiber-261015",
+            databaseURL: "https://ecstatic-fiber-261015.firebaseio.com/"
+          });
+        }
+
+        sf_sdka = firebase;
+
+        if (typeof sfPixel.ruleDetails !== 'undefined') {
+          if (typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '1' || typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '2') {
+            sfPixel.usersOnline(loadNow, type, callback);
+          } else {
+            loadNow(type, callback);
+          }
+        } else {
+          loadNow(type, callback);
+        }
+
+        function loadNow(type, callback) {
+          // Create a reference to this user's specific status node.
+          // This is where we will store data about being online/offline.
+
+          var p = window.sfpid;
+          if(typeof window.sfLivePid !== 'undefined'){
+            p = window.sfLivePid;
+          }
+
+          var userStatusDatabaseRef = sf_sdka.database().ref('/session/' + p + '/' + sfPixel.stats.session);
+          // We'll create two constants which we will write to
+          // the Realtime database when this device is offline
+          // or online.
+          var isOfflineForDatabase = {
+            state: 'offline',
+            last_changed: sf_sdka.database.ServerValue.TIMESTAMP,
+            stats: sfPixel.stats
+          };
+
+          var isOnlineForDatabase = {
+            state: 'online',
+            last_changed: sf_sdka.database.ServerValue.TIMESTAMP,
+            stats: sfPixel.stats
+          };
+
+          // Create a reference to the special '.info/connected' path in
+          // Realtime Database. This path returns `true` when connected
+          // and `false` when disconnected.
+          sf_sdka.database().ref('.info/connected').on('value', function (snapshot) {
+            // If we're not currently connected, don't do anything.
+            if (snapshot.val() == false) {
+              return;
+            };
+
+            // If we are currently connected, then use the 'onDisconnect()'
+            // method to add a set which will only trigger once this
+            // client has disconnected by closing the app,
+            // losing internet, or any other means.
+            userStatusDatabaseRef.onDisconnect().update(isOfflineForDatabase).then(function () {
+              // The promise returned from .onDisconnect().set() will
+              // resolve as soon as the server acknowledges the onDisconnect()
+              // request, NOT once we've actually disconnected:
+              // https://sf_sdka.google.com/docs/reference/js/sf_sdka.database.OnDisconnect
+
+              // We can now safely set ourselves as 'online' knowing that the
+              // server will mark us as offline once we lose connection.
+              userStatusDatabaseRef.update(isOnlineForDatabase);
+            });
+          });
+
+          if (type === 'load_chat') {
+            if (typeof callback === "function") {
+              callback();
+            }
+          }
+
+          window.sfPrompted = 0;
+
+          setTimeout(function () {
+            userStatusDatabaseRef.on('value', function (snapshot) {
+              var data = snapshot.val();
+              if (data) {
+                if (data.prompt === 1 && window.sfPrompted === 0) {
+                  window.sfPrompted = 1;
+
+                  sf_sdk.initChatListener('new');
+                  var wrap = document.querySelector('.sf-push-wrapper');
+                  if (wrap) {
+                    wrap.innerHTML = '<div class="sf-push-discussion">' +
+                      '<div class="sf-msg-wrp sf-current">' +
+                      '</div>' +
+                      '</div>';
+                  }
+                  sf_sdk.livechatMode('new', 'livechat');
+                  sf_sdk.sendLivechatMessage('This is a live chat started by the agent.', 3, 0);
+                }
+              }
+            });
+          }, 1000);
+        }
+      }
+    }
+    else {
+      if (typeof callback === "function") {
+        callback();
+      }
+    }
+  },
+  initChat: function () {
+    sf_sdk.createLiveChatWidget(window.sfId);
+  },
+  sfRemoveElement: function (elem) {
+    if (elem) {
+      return elem.parentNode.removeChild(elem);
+    }
+  },
+  loadSession: function (session) {
+
+    var data = {
+      "pid": window.sfpid,
+      "session": session
+    };
+
+    data = JSON.stringify(data);
+    var url = "https://leu48q92nh.execute-api.eu-north-1.amazonaws.com/default/stats-fetch";
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.send(data);
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var json = JSON.parse(xhr.responseText);
+
+        if (typeof json === 'undefined' || json === null || json === 0) {
+          sfPixel.newSession();
+        } else {
+
+          sfPixel.stats = json;
+
+          sfPixel.stats.pageviews = sfPixel.stats.pageviews + 1;
+          sfPixel.stats.pid = window.sfpid;
+          if (typeof sfPixel.stats.clickedElements !== 'undefined') {
+            sfPixel.stats.clickedElements = [];
+          }
+
+          if (typeof sfPixel.stats.conversations === 'undefined') {
+            sfPixel.stats.conversations = [];
+          }
+
+          if (typeof sfPixel.stats.formInteractions === 'undefined') {
+            sfPixel.stats.formInteractions = [];
+          }
+
+          if (typeof sfPixel.stats.formSubmissions === 'undefined') {
+            sfPixel.stats.formInteractions = [];
+          }
+
+          if (typeof sfPixel.stats.serviceformSubmissions === 'undefined') {
+            sfPixel.stats.serviceformSubmissions = [];
+          }
+          if (typeof sfPixel.stats.chatbotInteractions === 'undefined') {
+            sfPixel.stats.chatbotInteractions = [];
+          }
+
+          if (typeof sfPixel.stats.chatbotSubmissions === 'undefined') {
+            sfPixel.stats.chatbotSubmissions = [];
+          }
+
+          if (typeof sfPixel.stats.livechats === 'undefined') {
+            sfPixel.stats.livechats = [];
+          }
+
+          if (typeof sfPixel.stats.customerName === 'undefined') {
+            sfPixel.stats.customerName = '';
+          }
+
+          if (typeof sfPixel.stats.customerIp === 'undefined') {
+            sfPixel.stats.customerIp = '';
+          }
+
+          if (typeof sfPixel.stats.customerCompany === 'undefined') {
+            sfPixel.stats.customerCompany = '';
+          }
+
+          if (typeof sfPixel.stats.customerPhone === 'undefined') {
+            sfPixel.stats.customerPhone = '';
+          }
+
+          if (typeof sfPixel.stats.country === 'undefined') {
+            sfPixel.stats.country = '';
+          }
+
+          if (typeof sfPixel.stats.ip === 'undefined') {
+            sfPixel.stats.ip = '';
+          }
+
+          if (typeof sfPixel.stats.amount === 'undefined') {
+            sfPixel.stats.amount = 0;
+          }
+
+          if (typeof sfPixel.stats.cart === 'undefined') {
+            sfPixel.stats.cart = [];
+          }
+
+          if (typeof sfPixel.stats.cart === 'undefined') {
+            sfPixel.stats.cart = [];
+          }
+          if (typeof sfPixel.stats.errors === 'undefined') {
+            sfPixel.stats.errors = [];
+          }
+          if (typeof sfPixel.stats.errorCount === 'undefined') {
+            sfPixel.stats.errorCount = 0;
+          }
+          if (typeof sfPixel.stats.seconds === 'undefined') {
+            sfPixel.stats.seconds = 0;
+          }
+
+          sfPixel.post();
+          sfPixel.actions();
+        }
+      }
+    };
+
+  },
+  generateId: function (length) {
+    var s = '';
+    do { s += Math.random().toString(36).substr(2); } while (s.length < length);
+    s = s.substr(0, length);
+
+    return s;
+  },
+  cartSniffer: function () {
+    function getShoppingCart() {
+      var shoppingCart = [];
+      var cart = document.querySelector('.cart-product-table');
+      if (cart) {
+        var items = cart.getElementsByClassName('cart-product-row');
+        if (items) {
+          for (var i = 0; i < items.length; i++) {
+
+            var quantity = items[i].querySelector('.cart-quantity-selector input');
+            var name = items[i].querySelector('.cart-product-name a');
+            var unit_price = items[i].querySelector('.cart-product-price');
+
+            function getContent(data) {
+              if (data) {
+                data = data.textContent;
+              } else {
+                data = '';
+              }
+              return data;
+            }
+
+            var product = {
+              "quantity": quantity.value,
+              "name": getContent(name),
+              "unit_price": getContent(unit_price),
+              "link": name.getAttribute('href')
+            };
+            shoppingCart.push(product);
+          }
+        }
+
+        sfPixel.stats.cart = shoppingCart;
+      }
+
+      var productList = document.querySelectorAll('.cart_product_list table tr');
+      if (productList.length) {
+        for (var i = 0; i < productList.length; i++) {
+          var product = {
+            "name": productList[i].textContent
+          };
+          shoppingCart.push(product);
+        }
+      }
+    }
+
+    getShoppingCart();
+  },
+  actions: function () {
+    // Add current path.
+    var event = new Date();
+    var referrer = document.referrer;
+
+    // Start pixel.
+    var event = new Date();
+    event = event.toISOString();
+
+    if (typeof sfPixel.errorHandling !== 'undefined') {
+      window.onerror = function (msg, url, lineNo, columnNo, error) {
+        var string = msg.toLowerCase();
+        var substring = "script error";
+        if (string.indexOf(substring) > -1) {
+        } else {
+          var message = {
+            'Message': msg,
+            'URL': url,
+            'Line': lineNo,
+            'Column': columnNo,
+            'Error object': JSON.stringify(error)
+          };
+
+          sfPixel.stats.errors.push(message);
+          if (typeof sfPixel.stats.errorCount === 'undefined') {
+            sfPixel.stats.errorCount = 1;
+          } else {
+            sfPixel.stats.errorCount = sfPixel.stats.errorCount + 1;
+          }
+        }
+
+        return false;
+      };
+    }
+
+    var a = {
+      seconds: 0,
+      referrer: referrer,
+      website: document.location.href,
+      livechat: 0,
+      view: 1,
+      date: event,
+      interactionSecond: 0,
+      submission: 0,
+      interaction: 0,
+      clickElements: '',
+      actions: '',
+      seconds: 0,
+      agent: 0,
+      clicks: 0
+    };
+
+    // Full page load.
+    if (typeof window.sfDevMode !== 'undefined' && window.sfDevMode === 1) {
+      sfPixel.initAdv('load_chat', loadChat);
+      function loadChat() {
+        var url = sfPixel.analyticsRoot + '/chat/sf-chat.js';
+        sfPixel.loadScript2(url, sfPixel.initChat);
+      }
+    } else if (typeof window.sfType !== 'undefined' && window.sfType === 'inline-load') {
+      sfPixel.initAdv('load_chat', loadChat);
+      function loadChat() {
+        var url = sfPixel.analyticsRoot + '/chat/sf-chat.js';
+        sfPixel.loadScript2(url, sfPixel.initChat);
+      }
+    } else if (typeof window.sfType !== 'undefined' && window.sfType === 'normal-load') {
+      sfPixel.initAdv('load_chat', loadChat);
+      function loadChat() {
+        var url = sfPixel.analyticsRoot + '/chat/sf-chat.js';
+        sfPixel.loadScript2(url, sfPixel.initChat);
+      }
+    } else {
+      // Normal load.
+      if (window.sfpid === 160266) {
+        var tD = (new Date).toISOString().slice(0, 10); window.sfId = 210848, window.sfSelector = "body", window.sfType = "chat", window.sfSize = "0"; var u = "https://app.serviceform.com/servicechat/servicechat_v4.js?v" + tD, t = document.createElement("script"); t.setAttribute("type", "text/javascript"), t.setAttribute("src", u), t.async = !0, (document.getElementsByTagName("head")[0] || document.documentElement).appendChild(t);
+      } else {
+        sfPixel.getAndRunRules();
+      }
+    }
+
+
+    if (sfPixel.stats.page) {
+      sfPixel.stats.page.push(a);
+    }
+
+    function formListener(e) {
+      var clickedElement = e.srcElement;
+      if (clickedElement) {
+        if (clickedElement.tagName == 'INPUT' || clickedElement.tagName == 'SELECT' || clickedElement.tagName == 'textarea' || clickedElement.tagName == 'OPTION' || clickedElement.tagName == 'OPTGROUP') {
+          var filter = '';
+          var id = 0;
+          if (clickedElement.id) {
+            id = 1;
+            filter = clickedElement.id;
+          } else if (clickedElement.className) {
+            filter = '.' + clickedElement.className;
+          } else if (clickedElement.getAttribute('name')) {
+            filter = '[name="' + clickedElement.getAttribute('name') + '"]';
+          }
+
+          if (filter) {
+            if (document.querySelector(filter)) {
+              var form = document.querySelector(filter).closest('form');
+              var elementStats = {
+                'type': e.srcElement.tagName,
+                'parentElement': e.srcElement.parentElement.nodeName,
+                'id': e.srcElement.id,
+                'class': e.srcElement.className,
+                'form': {
+                  'id': form.id,
+                  'name': form.getAttribute('name'),
+                  'class': form.className,
+                  'action_url': form.action
+                }
+              };
+
+              if (typeof sfPixel.stats.formInteractions === 'undefined') {
+                sfPixel.stats.formInteractions = [];
+              }
+
+              sfPixel.stats.formInteractions.push(elementStats);
+            }
+          }
+        }
+      }
+    }
+
+    window.addEventListener('beforeunload', function (e) {
+      sfPixel.post();
+
+      sfPixel.st.type = 'leaving';
+      sfPixel.st.seconds = (Date.now() - sfPixel.startTime) / 1000;
+
+      if(sfPixel.st.seconds < 20 && sfPixel.st.clicks === 0 && sfPixel.st.unique){
+        sfPixel.st.bounce = 1;
+      }
+      sfPixel.send('website','leaving');
+    });
+
+    var sec = 0;
+    setInterval(function () {
+      sec++;
+      if (typeof sfPixel.stats !== 'undefined' && typeof sfPixel.stats.page !== 'undefined') {
+        sfPixel.stats.page[sfPixel.stats.page.length - 1].seconds = sfPixel.stats.page[sfPixel.stats.page.length - 1].seconds + 1;
+        sfPixel.stats.seconds = sfPixel.stats.seconds + 1;
+
+        if (sfPixel.stats.seconds > 20) {
+          if (sfPixel.stats.score < 10) {
+            sfPixel.stats.score = 10;
+          }
+        }
+      }
+    }, 1000);
+  },
+  pixelAction(rule) {
+    if (rule.action === 'chatbot') {
+      if (typeof window.sfInitedBot === 'undefined' || window.sfInitedBot !== 1) {
+        window.sfInitedBot = 1;
+
+        window.sfId = rule.action_value;
+        if (typeof window.sfInitedAdv === 'undefined' || window.sfInitedAdv !== 1) {
+          sfPixel.initAdv('load_chat', loadChat);
+        } else {
+          loadChat();
+        }
+
+        function loadChat() {
+          if (sfPixel.ruleDetails) {
+            // If live chat only is set.
+            if (typeof sfPixel.ruleDetails.livechatOnly !== 'undefined' && sfPixel.ruleDetails.livechatOnly !== '') {
+
+              // If general team hours are true and users are live.
+              var teamKey = 0;
+              var teams = sfPixel.ruleDetails.teams;
+              for (var i = 0; i < teams.length; i++) {
+                var teamId = teams[i].teamId;
+                if (teamId === window.sfDynamicLivechatTeam) {
+                  teamKey = i;
+                  break;
+                }
+              }
+
+              if (teamKey) {
+                if (sfPixel.ruleDetails.teams[teamKey].livechatHours && sfPixel.ruleDetails.teams[teamKey].onlineUsers) {
+                  window.serviceChatDynamicTag8 = sfPixel.ruleDetails.liveTotal;
+                  window.sfId = sfPixel.ruleDetails.livechatOnly;
+                }
+              }
+            }
+          }
+          sfPixel.loadScript2(sfPixel.analyticsRoot + 'chat/sf-chat.js', sfPixel.initChat);
+        }
+      }
+    } else if (rule.action === 'chatbot_on_off') {
+      if (typeof window.sfInitedBot === 'undefined' || window.sfInitedBot !== 1) {
+        window.sfInitedBot = 1;
+
+        window.sfId = rule.offline_value;
+        if (typeof window.sfInitedAdv === 'undefined' || window.sfInitedAdv !== 1) {
+          sfPixel.initAdv('load_chat', loadChat);
+        } else {
+          loadChat();
+        }
+
+        function loadChat() {
+          if (sfPixel.ruleDetails) {
+
+            // If live chat only is set.
+            if (typeof rule.offline_value !== 'undefined' && rule.offline_value !== '') {
+
+              // If general team hours are true and users are live.
+              var teamKey = 0;
+              // var teams = sfPixel.ruleDetails.teams;
+              // for (var i = 0; i < teams.length; i++) {
+              //   var teamId = teams[i].teamId;
+              //   if (teamId === window.sfDynamicLivechatTeam) {
+              //     teamKey = i;
+              //     break;
+              //   }
+              // }
+
+              if (sfPixel.ruleDetails.teams[teamKey].chatOnline) {
+                window.sfId = rule.action_value;
+              }
+            }
+          }
+          sfPixel.loadScript2(sfPixel.analyticsRoot + 'chat/sf-chat.js', sfPixel.initChat);
+        }
+      }
+    }
+    else if (rule.action === 'inlinecalendar') {
+      if (typeof sfInitedCalendar === 'undefined' || sfInitedCalendar !== 1) {
+        window.sfInitedCalendar = 1;
+
+        sfPixel.loadScript2(sfPixel.rootUrl + "serviceform-tools/calendar/sf-calendar.js" + sfPixel.version, run);
+        function run() {
+          sf_cal.init(rule.action_value, 'normal', rule.action_value2);
+        }
+      }
+    }
+    else if (rule.action === 'leadbar') {
+      if (typeof sfInitedLeadbar === 'undefined' || sfInitedLeadbar !== 1) {
+        window.sfInitedLeadbar = 1;
+
+        sfPixel.loadScript2(sfPixel.analyticsRoot + "leadbar/sf-leadbar-v2.js" + sfPixel.version, run);
+
+        function run() {
+          sf_leadbar.init(rule.action_value, 'live');
+        }
+      }
+    }
+    else if (rule.action === 'customJs') {
+      if (typeof window.sfCodeDisable === 'undefined' || window.sfCodeDisable !== 1) {
+        sfPixel.runCustomJs(rule.customJs);
+      }
+    }
+    else if (rule.action === 'chatbot_2') {
+      if (typeof sfInitedBot === 'undefined' || sfInitedBot !== 1) {
+        window.sfInitedBot = 1;
+        window.sfId = rule.action_value;
+
+        window.sfSelector = "body", window.sfType = "chat", window.sfSize = "0";
+        var u = "https://app.serviceform.com/servicechat/servicechat_v4.js" + sfPixel.version, t = document.createElement("script");
+        t.setAttribute("type", "text/javascript"), t.setAttribute("src", u), t.async = !0, (document.getElementsByTagName("head")[0] || document.documentElement).appendChild(t);
+        sfPixel.initAdv('limited', '');
+      }
+    }
+    else if (rule.action === 'fullpage') {
+      if (typeof sfInitedBot === 'undefined' || sfInitedBot !== 1) {
+        window.sfInitedBot = 1;
+        window.sfId = rule.action_value;
+
+        var css = '<style>#inline-sf{width:100%; min-height: 100vh;}' +
+          '.sf-gui { width: 100%; position: fixed; top: 0; left: 0; z-index: 9999999999; background:white;height: 100%;}' +
+          '.sf-gui .full-size { position: absolute; opacity: 0.6; position: absolute; width: 29px; border-radius: 7px; box-sizing: content-box; padding: 11px; padding-bottom: 3px; top: 20px; cursor: pointer; background: #000000; left: 20px; }' +
+          '</style>';
+
+        document.querySelector('body').innerHTML = '<div class="sf-gui">' +
+          '<iframe onload="iframeLoaded();" id="inline-sf" src="https://app.serviceform.com/analytics/fullpage-loader.html' + sfPixel.version + '">' +
+          '</iframe>' + css +
+          '</div>';
+
+        var inlineSf = document.querySelector('.sf-gui');
+        inlineSf.addEventListener('click', function () {
+          sfPixel.sfRemoveElement(inlineSf);
+        });
+
+        window.iframeLoaded = function () {
+          var iframe = document.querySelector('#inline-sf');
+          if (iframe) {
+            var json = {
+              'sfpid': window.sfpid,
+              'sfId': sfId,
+              'dynamicTag1': window.serviceChatDynamicTag1,
+              'dynamicTag2': window.serviceChatDynamicTag2,
+              'dynamicTag3': window.serviceChatDynamicTag3,
+              'dynamicTag4': window.serviceChatDynamicTag4,
+              'dynamicTag5': window.serviceChatDynamicTag5,
+              'dynamicTag6': window.serviceChatDynamicTag6,
+              'dynamicTag7': window.serviceChatDynamicTag7,
+              'dynamicTag8': window.serviceChatDynamicTag8,
+              'serviceChatDynamicEmail': window.serviceChatDynamicEmail,
+              'dynamicReceiver': window.serviceChatDynamicEmail,
+            };
+
+            json = JSON.stringify(json);
+            iframe.contentWindow.postMessage(json, '*');
+          }
+        };
+      }
+    }
+    else if (rule.action === 'inlinebot') {
+      if (typeof sfInitedInline === 'undefined' || sfInitedInline !== 1) {
+
+        var tb = document.querySelector('.tagomo-bot');
+        if (tb) {
+          tb.innerHTML = '';
+        }
+
+        window.sfInitedInline = 1;
+        window.fpId = rule.action_value;
+        var tD = (new Date).toISOString().slice(0, 10);
+
+        var sfCheck = document.querySelector(rule.action_value2);
+        if (sfCheck) {
+          window.fpSelector = rule.action_value2, window.fpType = "inline", window.sfSize = "0";
+          var u = sfPixel.rootUrl + "serviceform-tools/chat/inline/servicechat_inline.js" + sfPixel.version,
+            t = document.createElement("script");
+          t.setAttribute("type", "text/javascript");
+          t.setAttribute('charset', 'UTF-8'), t.setAttribute("src", u), t.async = !0, (document.getElementsByTagName("head")[0] || document.documentElement).appendChild(t);
+          sfPixel.initAdv('limited', '');
+        }
+      }
+    }
+    else if (rule.action === 'popup') {
+      if (typeof sfInitedPopup === 'undefined' || sfInitedPopup !== 1) {
+        window.sfInitedPopup = 1;
+        window.sfPopId = rule.action_value;
+        window.sfSize = "0";
+        var u = sfPixel.analyticsRoot + "popup/sf-popup.js" + sfPixel.version,
+          t = document.createElement("script");
+        t.setAttribute("type", "text/javascript"),
+          t.setAttribute('charset', 'UTF-8'),
+          t.setAttribute("src", u), t.async = !0, (document.getElementsByTagName("head")[0] || document.documentElement).appendChild(t);
+        sfPixel.initAdv('limited', '');
+      }
+    }
+    else if (rule.action === 'form') {
+      sfPixel.loadServiceform(rule.action_value, rule.action_value2);
+    }
+    else if (rule.action === 'fullpage_embed') {
+      sfPixel.loadScript2('https://app.serviceform.com/analytics/fullpage-loader.js', sfPixel.loadFullpage);
+    } else if (rule.action === 'fullpage_full') {
+      sfPixel.loadScript2('https://app.serviceform.com/analytics/fullpage-loader.js', sfPixel.loadFullpage);
+    }
+    else if (rule.action === 'disable') {
+      window.sfInitedPopup = 1;
+      window.sfInitedInline = 1;
+      window.sfInitedBot = 1;
+      window.sfCodeDisable = 1;
+      window.sfInitedLeadbar = 1;
+    }
+    else if (rule.action === 'disableChats') {
+      window.sfInitedBot = 1;
+    }
+    else if (rule.action === 'disableInlineChats') {
+      window.sfInitedInline = 1;
+    }
+    else if (rule.action === 'disablePopups') {
+      window.sfInitedPopup = 1;
+    }
+  },
+  usersOnline: function (loadNow, type, callback) {
+    if (typeof sfPixel.loadedOnlineUsers === 'undefined') {
+      sfPixel.loadedOnlineUsers = 1;
+
+      var defaultTeam = 0;
+      if (typeof sfPixel.ruleDetails !== 'undefined' && typeof sfPixel.ruleDetails.genericTeam !== 'undefined' && sfPixel.ruleDetails.genericTeam !== '') {
+        defaultTeam = sfPixel.ruleDetails.genericTeam;
+      }
+
+      if (typeof sfPixel.ruleDetails !== 'undefined' && typeof sfPixel.ruleDetails.genericPixel !== 'undefined' && sfPixel.ruleDetails.genericPixel !== '') {
+        window.sfLivePid = sfPixel.ruleDetails.genericPixel;
+      } else {
+        window.sfLivePid = window.sfpid;
+      }
+
+      var userStatusDatabaseRef = firebase.database().ref('/agents/' + window.sfLivePid + '/').orderByChild('status').equalTo("online").once('value').then(function (snapshot) {
+
+        var onlineUsers = {};
+        var count = 0;
+
+        snapshot.forEach(function (childSnapshot) {
+          var data = childSnapshot.val();
+
+          var teams = sfPixel.ruleDetails.teams;
+          for (var i = 0; i < teams.length; i++) {
+            if (defaultTeam) {
+              if (data.team === defaultTeam) {
+                data.team = '0';
+              }
+            }
+            if (teams[i].teamId === data.team) {
+              sfPixel.ruleDetails.teams[i].onlineUsers = 1;
+              count++;
+
+              if (typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '1' && count > 0 || typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '2' && count > 0) {
+                if (sfPixel.ruleDetails.type === '2' && sfPixel.ruleDetails.teams[i].onlineUsers) {
+                  sfPixel.ruleDetails.teams[i].chatOnline = 1;
+                } else if (sfPixel.ruleDetails.teams[i].onlineUsers && sfPixel.ruleDetails.teams[i].livechatHours) {
+                  sfPixel.ruleDetails.teams[i].chatOnline = 1;
+                  sfPixel.ruleDetails.teams[i].onlineWithUsers = 1;
+                } else {
+                  sfPixel.ruleDetails.teams[i].chatOnline = 0;
+                }
+              }
+            }
+          }
+        });
+
+        sfPixel.ruleDetails.liveTotal = count;
+
+        loadNow(type, callback);
+
+      });
+    }
+  },
+  getAndRunRules() {
+    var data = "pid=" + window.sfpid;
+    var xhr = new XMLHttpRequest();
+
+    xhr.addEventListener("readystatechange", function () {
+      if (this.readyState === 4) {
+        var response = this.responseText;
+        if (response !== '403') {
+          var data = JSON.parse(response);
+
+          sfPixel.ruleDetails = data;
+
+          if (typeof data.cookieControl !== 'undefined' && data.cookieControl === '1') {
+            sfPixel.cookiePolicy = 1;
+
+            // For local testing.
+            if (window.location.href.indexOf("netti") != -1) {
+            } else {
+              sfPixel.loadScript2(sfPixel.analyticsRoot + 'privacy/sf-privacy.js', '');
+            }
+          }
+
+          if (typeof data.onePageMode !== 'undefined' && data.onePageMode === '1') {
+            sfPixel.onePageMode();
+          }
+
+          // Confusing logic for secondar pixels.
+          if (typeof sfPixel.ruleDetails !== 'undefined' && typeof sfPixel.ruleDetails.genericPixel !== 'undefined' && sfPixel.ruleDetails.genericPixel !== '') {
+            var data = "pid=" + sfPixel.ruleDetails.genericPixel;
+            var xhr2 = new XMLHttpRequest();
+
+            xhr2.addEventListener("readystatechange", function () {
+              if (this.readyState === 4) {
+                var response = this.responseText;
+                if (response !== '403') {
+                  var data = JSON.parse(response);
+
+                  sfPixel.ruleDetails.defaultTeams = data.teams;
+
+                  startInitiating();
+                }
+              }
+            });
+
+            xhr2.open("POST", "https://europe-west1-ecstatic-fiber-261015.cloudfunctions.net/gP?pid=" + window.sfpid);
+            xhr2.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr2.send(data);
+          } else {
+            startInitiating();
+          }
+
+          // Livechat logic.
+          function startInitiating() {
+            var data = sfPixel.ruleDetails;
+            sfPixel.chatOnline = 1;
+
+            function online(data, timezone) {
+              var d = new Date();
+              if(typeof sfPixel.ruleDetails.now !== 'undefined' && sfPixel.ruleDetails.now){
+                d = new Date(sfPixel.ruleDetails.now);
+              }
+              var days = data.days;
+
+              var timeLocal = { timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false };
+              timeLocal = d.toLocaleString('UTC', timeLocal);
+              timeLocal = timeToInt(timeLocal);
+
+              var dayLocal = { timeZone: timezone, weekday: 'long', hour12: false };
+              dayLocal = d.toLocaleString('UTC', dayLocal);
+
+              switch (dayLocal) {
+                case "Sunday":
+                  dayLocal = 0;
+                  break;
+                case "Monday":
+                  dayLocal = 1;
+                  break;
+                case "Tuesday":
+                  dayLocal = 2;
+                  break;
+                case "Wednesday":
+                  dayLocal = 3;
+                  break;
+                case "Thursday":
+                  dayLocal = 4;
+                  break;
+                case "Friday":
+                  dayLocal = 5;
+                  break;
+                case "Saturday":
+                  dayLocal = 6;
+              }
+              var n = dayLocal;
+
+              var key = 0;
+              for (var i = 0; i < days.length; i++) {
+                if (days[i].code === n) {
+                  key = i;
+                }
+              }
+
+              var currentDayData = days[key];
+              var startTime = currentDayData.businessStart;
+              var endTime = currentDayData.businessEnd;
+
+              var live = 0;
+              if (currentDayData.status) {
+                if (timeLocal >= timeToInt(startTime) && timeLocal <= timeToInt(endTime)) {
+                  live = 1;
+                }
+              }
+
+              return live;
+
+              function timeToInt(value) {
+                value = value.replace(":", ".");
+                return parseFloat(value);
+              }
+            }
+
+            if (typeof sfPixel.ruleDetails.teams !== 'undefined') {
+              var teams = sfPixel.ruleDetails.teams;
+              for (var i = 0; i < teams.length; i++) {
+                if (typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '1' || typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '2') {
+                  sfPixel.ruleDetails.teams[i].chatOnline = 0;
+                  sfPixel.ruleDetails.teams[i].livechatHours = online(teams[i], sfPixel.ruleDetails.timezone);
+                } else if (typeof sfPixel.ruleDetails.type !== 'undefined' && sfPixel.ruleDetails.type === '4') {
+                  sfPixel.ruleDetails.teams[i].chatOnline = 0;
+                } else {
+                  sfPixel.ruleDetails.teams[i].chatOnline = online(teams[i], sfPixel.ruleDetails.timezone);
+                }
+              }
+            }
+
+            if (typeof sfPixel.ruleDetails.days !== 'undefined') {
+              sfPixel.ruleDetails.chatOnline = online(sfPixel.ruleDetails, sfPixel.ruleDetails.timezone);
+            }
+
+            if (typeof sfPixel.ruleDetails.genericTeam !== 'undefined' && sfPixel.ruleDetails.genericTeam !== '') {
+              window.sfDynamicLivechatTeam = sfPixel.ruleDetails.genericTeam;
+            }
+
+            var status = 1;
+            if (typeof data.status !== 'undefined') {
+              if (data.status !== 'off') {
+                status = 0;
+              }
+            }
+
+            if (status) {
+              var rules = data.rules;
+              if (typeof sfPixel.cookiePolicy !== 'undefined' && sfPixel.cookiePolicy === 1) {
+              } else {
+                sfPixel.executeRules(rules);
+              }
+            }
+          }
+        }
+      }
+    });
+
+    xhr.open("POST", "https://europe-west1-ecstatic-fiber-261015.cloudfunctions.net/gP?pid=" + window.sfpid);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    xhr.send(data);
+  },
+  executeRules: function (rules) {
+    if (typeof sfPixel.rulesExecuted === 'undefined') {
+      if (typeof rules !== 'undefined') {
+        for (var i = 0; i < rules.length; i++) {
+          var trigger = 1;
+          var ruleValue = rules[i].filter_value;
+          var splitRules = ruleValue.split(',');
+          for (var ik = 0; ik < splitRules.length; ik++) {
+            var cr = splitRules[ik];
+            cr = cr.trim();
+            if (rules[i].type === 'url_contains') {
+              if (window.location.href.indexOf(cr) > -1) {
+                if (trigger) {
+                  sfPixel.pixelAction(rules[i]);
+                  trigger = 0;
+                }
+              }
+            } else if (rules[i].type === 'url_equals') {
+              if (window.location.href === cr) {
+                if (trigger) {
+                  sfPixel.pixelAction(rules[i]);
+                  trigger = 0;
+                }
+              }
+            } else if (rules[i].type === 'class') {
+              var classElement = document.querySelector(cr);
+              if (classElement) {
+                if (trigger) {
+                  sfPixel.pixelAction(rules[i]);
+                  trigger = 0;
+                }
+              }
+            }
+          }
+        }
+      }
+      if(sfPixel.rulesExecuted) {
+        delete sfPixel.rulesExecuted;
+      }
+    }
+  },
+  post: function () {
+    if (typeof window.sfDevMode !== 'undefined' && window.sfDevMode === 1) {
+    } else {
+      var stats = sfPixel.stats;
+      if (window.sfpid) {
+        stats.pid = window.sfpid.toString();
+        var data = JSON.stringify(stats);
+        var url = "https://zy1ssnfwwl.execute-api.eu-north-1.amazonaws.com/default/statistics-function";
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", url);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send(data);
+      }
+    }
+  },
+  runCustomJs: function (customJS) {
+    if (typeof customJS !== 'undefined') {
+      if (customJS !== '') {
+        if (sfPixel.checkForJson(customJS)) {
+          eval(JSON.parse(customJS));
+        } else {
+          eval(customJS);
+        }
+      }
+    }
+  },
+  checkForJson: function (text) {
+    if (/^[\],:{}\s]*$/.test(text.replace(/\\["\\\/bfnrtu]/g, '@').
+    replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').
+    replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+      return 1;
+    } else {
+      return 0;
+    }
+  },
+  sfSetPixelCookie: function (cname, cvalue, exdays) {
+    if (typeof window.sfCookieLess === 'undefined' || window.sfCookieLess === 0) {
+      var d = new Date();
+      d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+      var expires = "expires=" + d.toUTCString();
+      document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/;SameSite=Lax;";
+    }
+  },
+  sfGetPixelCookie: function (cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  },
+  loadServiceform: function (id, element) {
+
+    function initSfForm(e, t) {
+      var s = sfPixel.analyticsRoot,
+        r = document.querySelector(t);
+      if (r) {
+        r.insertAdjacentHTML("afterbegin", '<div id="serviceform"></div>');
+      }
+
+      function i() {
+
+        var data = "nid=" + id;
+        var xhr = new XMLHttpRequest();
+        var url = "https://europe-west1-ecstatic-fiber-261015.cloudfunctions.net/getSf?nid=" + id;
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+
+        xhr.send(data);
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            var responseData = JSON.parse(xhr.response);
+            window.sf_reload = 0;
+
+            if (responseData === '403') {
+              window.sf_reload = 1;
+              n("https://app.serviceform.com/serviceform/js/" + e, c, "js");
+            } else {
+              window.jsonObject = responseData;
+              c();
+            }
+          }
+        };
+      }
+
+      function c() {
+        n(s + "serviceform/serviceform.js", k, "js");
+
+        function k() {
+          if (window.sf_reload) {
+            if (typeof window.jsonObject !== 'undefined' && window.jsonObject.serviceform) {
+              var json = JSON.stringify(window.jsonObject);
+              var xhr2 = new XMLHttpRequest();
+              var url = "https://apiv2.serviceform.com/logic-serviceform/add";
+              xhr2.open("POST", url, true);
+              xhr2.setRequestHeader("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
+              xhr2.send(json);
+            }
+          }
+        }
+      }
+
+      function n(e, t, s) {
+        if ("js" === s) (r = document.createElement("script")).setAttribute("type", "text/javascript"), r.setAttribute("src", e), r.async = !0; else if ("css" === s) {
+          var r;
+          (r = document.createElement("link")).setAttribute("rel", "stylesheet"), r.setAttribute("type", "text/css"), r.setAttribute("href", e);
+        }
+        r.readyState ? r.onreadystatechange = function () {
+          "complete" !== this.readyState && "loaded" !== this.readyState || t();
+        } : r.onload = t, (document.getElementsByTagName("head")[0] || document.documentElement).appendChild(r);
+      }
+
+      n(s + "serviceform/serviceform.css", i, "css");
+    }
+
+    initSfForm(id, element);
+  },
+  ns(){
+    // Let's check what you are on!
+    sfPixel.data();
+
+    // Add click tracking.
+    sfPixel.clickTracking();
+  },
+  clickTracking(){
+    if(document && document.body) {
+      document.body.addEventListener("click", function (evt) {
+        sfPixel.st.clicks ++;
+      });
+    }
+  },
+  data(){
+    sfPixel.st = {
+      pid: window.sfpid
+    };
+    // Get OS.
+    sfPixel.st.os = navigator.userAgent;
+
+    // Clicks.
+    sfPixel.st.clicks = 0;
+
+    // Language.
+    sfPixel.st.lg = navigator.language;
+
+    // Main site.
+    sfPixel.st.site = window.location.host;
+
+    // Full url.
+    sfPixel.st.url = window.location.href;
+
+    // Referrer.
+    sfPixel.processRef(document.referrer);
+
+    // Set time.
+    sfPixel.startTime = Date.now();
+    sfPixel.st.seconds = 0;
+
+    var Base64={_keyStr:"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",encode:function(e){var t="";var n,r,i,s,o,u,a;var f=0;e=Base64._utf8_encode(e);while(f<e.length){n=e.charCodeAt(f++);r=e.charCodeAt(f++);i=e.charCodeAt(f++);s=n>>2;o=(n&3)<<4|r>>4;u=(r&15)<<2|i>>6;a=i&63;if(isNaN(r)){u=a=64}else if(isNaN(i)){a=64}t=t+this._keyStr.charAt(s)+this._keyStr.charAt(o)+this._keyStr.charAt(u)+this._keyStr.charAt(a)}return t},decode:function(e){var t="";var n,r,i;var s,o,u,a;var f=0;e=e.replace(/[^A-Za-z0-9\+\/\=]/g,"");while(f<e.length){s=this._keyStr.indexOf(e.charAt(f++));o=this._keyStr.indexOf(e.charAt(f++));u=this._keyStr.indexOf(e.charAt(f++));a=this._keyStr.indexOf(e.charAt(f++));n=s<<2|o>>4;r=(o&15)<<4|u>>2;i=(u&3)<<6|a;t=t+String.fromCharCode(n);if(u!=64){t=t+String.fromCharCode(r)}if(a!=64){t=t+String.fromCharCode(i)}}t=Base64._utf8_decode(t);return t},_utf8_encode:function(e){e=e.replace(/\r\n/g,"\n");var t="";for(var n=0;n<e.length;n++){var r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r)}else if(r>127&&r<2048){t+=String.fromCharCode(r>>6|192);t+=String.fromCharCode(r&63|128)}else{t+=String.fromCharCode(r>>12|224);t+=String.fromCharCode(r>>6&63|128);t+=String.fromCharCode(r&63|128)}}return t},_utf8_decode:function(e){var t="";var n=0;var r=c1=c2=0;while(n<e.length){r=e.charCodeAt(n);if(r<128){t+=String.fromCharCode(r);n++}else if(r>191&&r<224){c2=e.charCodeAt(n+1);t+=String.fromCharCode((r&31)<<6|c2&63);n+=2}else{c2=e.charCodeAt(n+1);c3=e.charCodeAt(n+2);t+=String.fromCharCode((r&15)<<12|(c2&63)<<6|c3&63);n+=3}}return t}}
+
+    sfPixel.st.enco = Base64.encode(window.location.pathname);
+
+    // Check browser.
+    sfPixel.st.b = sfPixel.browser();
+
+    function checkMobile() {
+      let check = false;
+      (function(a){if(/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i.test(a)||/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i.test(a.substr(0,4))) check = true;})(navigator.userAgent||navigator.vendor||window.opera);
+      return check;
+    }
+
+    sfPixel.st.mobile = checkMobile();
+
+    // Propriatery unique visitor count.
+    let unique = 1;
+
+    var url = window.location.href;
+    var referrer = document.referrer;
+    if (referrer === '') {
+      unique = 1;
+    } else if (referrer.indexOf(url != -1)) {
+      unique = 0;
+    }
+
+    sfPixel.st.unique = unique;
+
+    // Send first data.
+    sfPixel.send('website', 'init');
+  },
+  processRef(r){
+
+    var sQ = window.location.search;
+    sQ = sQ.toLowerCase();
+
+    if (document.referrer.indexOf(window.location.host) !== -1){
+      return 'i';
+    }
+
+    if(r === ''){
+      sfPixel.st.rr = 'd'
+      sfPixel.st.fk = 'd';
+    } else if (r.indexOf("google.") !== -1){
+      sfPixel.st.rr = 'g'
+      sfPixel.st.fk = 'o';
+    } else if (r.indexOf("bing.") !== -1){
+      sfPixel.st.rr = 'b'
+      sfPixel.st.fk = 'o';
+    } else if (r.indexOf("linkedin") !== -1){
+      sfPixel.st.rr = 'li'
+      sfPixel.st.fk = 's';
+    } else if (r.indexOf("twitter") !== -1){
+      sfPixel.st.rr = 'tw'
+      sfPixel.st.fk = 's';
+    } else if (r.indexOf("tiktok") !== -1){
+      sfPixel.st.rr = 'tk'
+      sfPixel.st.fk = 's';
+    } else if (r.indexOf("bio.link") !== -1 || r.indexOf("instagram") !== -1){
+      sfPixel.st.rr = 'in'
+      sfPixel.st.fk = 's';
+    } else if (r.indexOf("facebook") !== -1 || sQ.indexOf('fbclid') !== -1){
+      sfPixel.st.rr = 'fb'
+      sfPixel.st.fk = 's';
+    }
+
+    if (sQ.indexOf('utm_source=facebook') !== -1){
+      sfPixel.st.rr = 'p-fb'
+      sfPixel.st.fk = 'p';
+    } else if (sQ.indexOf('gclid') !== -1){
+      sfPixel.st.rr = 'p-g'
+      sfPixel.st.fk = 'p';
+    } else if (sQ.indexOf('utm_source=linkedin') !== -1 || sQ.indexOf('li_fat_id') !== -1){
+      sfPixel.st.rr = 'p-l'
+      sfPixel.st.fk = 'p';
+    }
+
+    if (sQ.indexOf('utm_campaign') !== -1){
+      var params = new URLSearchParams(sQ);
+      var q = params.get("utm_campaign");
+      q = q.replace(/[^\w\s]/gi, '');
+
+      sfPixel.st.cm = q;
+    }
+
+    if (sQ.indexOf('utm_source') !== -1){
+      var params = new URLSearchParams(sQ);
+      var q = params.get("utm_source");
+      q = q.replace(/[^\w\s]/gi, '');
+
+      sfPixel.st.fk = q;
+    }
+  },
+  send(type, context){
+    var data = "";
+    if(type === 'chatbot' || type === 'form'){
+      data = {
+        ... context,
+        type: "chatbot",
+        value: context.type,
+        pid: window.sfUid,
+      }
+
+      data = JSON.stringify(data);
+    } else {
+      data = JSON.stringify(sfPixel.st);
+    }
+
+    var url = "https://eu.serviceform.com/statistics-endpoint";
+
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.send(data);
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4 && xhr.status === 200) {
+        var json = JSON.parse(xhr.responseText);
+      }
+    }
+  },
+  browser(){
+    let b = 'na';
+    if(typeof window.navigator !== 'undefined' && typeof window.navigator.userAgent !== 'undefined'){
+      let agent = window.navigator.userAgent;
+      let browser = agent.match(/(firefox|msie|chrome|safari)[/\s]([\d.]+)/ig);
+      if(browser){
+        if(browser[0]){
+          browser = browser[0].split('/');
+          if(browser[0]){
+            b = browser[0];
+          }
+        }
+      }
+    }
+
+    return b;
+  }
+};
+function loadScript2(url, callback) {
+  var normal = 1;
+  // If user has require js, load static dependencies.
+  if (typeof requirejs !== 'undefined' && requirejs || typeof Prototype !== 'undefined') {
+    if (url.indexOf("firebase") != -1 || url.indexOf("fuse") != -1) {
+      url = 'https://app.serviceform.com/analytics/sf-dependencies.js';
+      normal = 0;
+    } else {
+    }
+  } else if (url.indexOf("googleapis") != -1) {
+    normal = 0;
+  }
+
+  if (!document.getElementById(url)) {
+    var origurl = url;
+    if (normal) {
+      url = url + sfPixel.version;
+    }
+
+    var scriptTag = document.createElement('script');
+    scriptTag.setAttribute('type', 'text/javascript');
+    scriptTag.setAttribute('src', url);
+    scriptTag.setAttribute('id', origurl);
+    scriptTag.setAttribute('charset', 'UTF-8');
+
+    scriptTag.async = true;
+
+    if (scriptTag.readyState) {
+      scriptTag.onreadystatechange = function () {
+        if (this.readyState === 'complete' || this.readyState === 'loaded') {
+          callback();
+        }
+      };
+    } else {
+      scriptTag.onload = callback;
+    }
+
+    (document.getElementsByTagName('head')[0] || document.documentElement).appendChild(scriptTag);
+  } else {
+    callback();
+  }
+}
+
+sfPixel.init();

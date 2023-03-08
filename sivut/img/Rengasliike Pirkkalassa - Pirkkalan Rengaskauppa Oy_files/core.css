@@ -1,0 +1,473 @@
+html,body,div,span,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,
+pre,a,abbr,address,cite,code,del,dfn,em,img,ins,q,small,strong,
+sub,sup,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,
+tbody,tfoot,thead,tr,th,td {border:0;margin:0;padding:0}
+article,aside,figure,figure img,figcaption,hgroup,footer,header,nav,
+section,video,object {display:block}
+a img{border:0}
+figure{position:relative}
+figure img{width:100%}
+
+body {
+	padding:0px;
+	margin:0px;
+}
+* {margin:0px;padding:0px;font-size:100%;font-style:inherit;font-weight:inherit;vertical-align: baseline;}
+html, body { width:100%; }
+html { height:100%; overflow:auto; overflow-y:scroll; }
+a img {border-width:0px;}
+table {border-collapse:collapse;border-spacing:0;}
+
+a, a:visited, .eml { font-weight:600; }
+h2 a { font-weight:300; }
+h3 a { font-weight:300; }
+strong, b { font-weight:600; }
+#subnav li a { font-weight:300; }
+#left ul.menu li a { font-weight:300; }
+#nav .submenu li a { font-weight:300; }
+ul.sivukartta ul li a { font-weight:300; }
+a.call { font-weight:300; } 
+.formNotice { font-weight:600; }
+
+@media (max-width: 600px) {
+	h1 { font-size:32px; line-height:32px; }
+	h2 { font-size:24px; line-height:24px; }
+	h3 { font-size:18px; line-height:20px; }
+	h1,h2,h3,#nav ul li.level1 > a, .valikko-koti a, .valikko-avaa a,
+	.nappi, a.nappi, div.pagination span a, div.pagination span strong, #nav ul li.level1.viimeinen a {
+		text-transform:none;
+	}
+}
+a, a:visited, .eml {
+	text-decoration:none;
+}
+a:hover {text-decoration:underline;}
+
+#right h2, #left h2, #footer h2 { margin-top:0px; }
+h1:last-child { margin-bottom:10px; }
+
+ol {list-style: decimal;}
+ul {list-style: disc;}
+li {margin-left: 30px;}
+
+p,dl,hr,h1,h2,h3,h4,h5,h6,ol,ul,pre,table,address,fieldset,iframe {margin-bottom: 20px;}
+ul+ul { margin-top:0px; }
+h2,h3 { margin-top:30px; margin-bottom:10px; }
+p + ul {margin-top:-10px;}
+h1+h2, h1+h3 { margin-top:-10px !important; }
+h2+h3 { margin-top:0px; }
+h2:first-child, h3:first-child { margin-top:0px; }
+em, i {font-style:italic;}
+hr { border:0px; border-top:1px dotted #aaa; }
+td { vertical-align:top; }
+
+h1,h2,h3,h4,h5,h6 {word-wrap:break-word; overflow-wrap:break-word;}
+
+
+	.nappi em, .laatikko .otsikko h2 em { color:#eee !important; }
+	.nappi.vari2 em, .laatikko.laatikko-vari2 .otsikko h2 em { color:#eee !important; }
+	.nappi.vari3 em, .laatikko.laatikko-vari3 .otsikko h2 em { color:#666 !important; }
+	.nappi.vari4 em, .laatikko.laatikko-vari4 .otsikko h2 em { color:#eee !important; }
+
+
+
+.formRequiredNotice, .formRequiredList { color:#900; }
+
+
+.pagination span a {color:#fff;}
+
+
+
+#nav ul.menu {margin:0px;padding:0px;}
+#nav ul li.level1 {
+	margin:0px;
+	padding:0px;
+	list-style:none;
+	text-align:center;
+	vertical-align:middle;
+	position:relative;
+}
+
+#nav ul li.level1 > a, .valikko-koti a, .valikko-avaa a { 
+	display:block;
+	text-align:center;	
+	position:relative;
+	z-index:24;
+	background:transparent;
+	
+	-webkit-transition: all 200ms ease-in-out;
+	-moz-transition: all 200ms ease-in-out;
+	-o-transition: all 200ms ease-in-out;
+	-ms-transition: all 200ms ease-in-out;
+	transition: all 200ms ease-in-out;
+}
+
+
+#nav ul li.level1.viimeinen {
+	background-position:center center;
+}
+#nav ul li.level1.viimeinen a {
+	padding:0px !important;
+	padding-top:7px !important;
+	padding-bottom:7px !important;
+}
+
+.valikko-koti, .valikko-avaa, #nav li a .ikoni, .mobiililinkki { display:none; }
+
+
+
+
+#nav li.level1 > .submenu {
+	min-width:100%;
+	width:200px; 
+	
+	display:none;
+
+	position:absolute;
+	z-index:5000;
+	top:100%;
+	left:0px;
+	
+	-moz-box-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+	-webkit-box-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+	box-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+}
+#nav .submenu ul, #nav .submenu li {
+	height:auto;
+	list-style:none;
+}
+
+#nav .submenu li a {
+	display:block;
+
+	text-decoration:none !important;
+	text-align:left !important;
+	
+	-webkit-transition: all 200ms ease-in-out;
+	-moz-transition: all 200ms ease-in-out;
+	-o-transition: all 200ms ease-in-out;
+	-ms-transition: all 200ms ease-in-out;
+	transition: all 200ms ease-in-out;
+}
+#nav .submenu li a:hover {
+	text-indent:5px;
+	text-decoration:none;
+}
+#nav .submenu .link { display:block; }
+
+#nav .submenu .submenu .link { padding-left:5px; }
+#nav .submenu .submenu .link:before { content:"- "; }
+
+#nav ul li.level1.hasSubItems:hover > .submenu, #nav ul li.level1.hasSubItems.openSub > .submenu {display:block;}
+
+
+
+@media (max-width: 800px) {
+	#nav .nav-fx1 { background:none; }
+}
+
+@media (max-width: 1024px) {
+	#nav ul li.level1 > a, #nav .submenu li a, #nav ul li.level1.viimeinen a {
+		
+		font-size:16px !important;
+		
+		text-transform:none;
+	}
+	#nav ul li.level1.viimeinen a, #nav ul li.level1.viimeinen {
+		-moz-box-shadow: none !important;
+		-webkit-box-shadow: none !important;
+		box-shadow: none !important;
+		background:transparent !important;
+		border:0px !important;
+		padding:0px !important;
+	}
+
+	
+	#nav li.active > a, #nav li.active > div > a { text-decoration:none !important; font-weight:700 !important; }
+	#nav li.current > a { text-decoration:none !important; }
+	
+	#nav li a .ikoni {
+		display:block;
+		float:right;
+		
+		margin-top:0.85%;
+		
+		-webkit-opacity: 0.15;
+		-moz-opacity: 0.15;
+		opacity: 0.15;
+	}
+	#nav li a:hover .ikoni, #nav li a:focus .ikoni {
+		-webkit-opacity: 1;
+		-moz-opacity: 1;
+		opacity: 1;
+	}
+	
+	.valikko { margin-bottom:6px; }
+	
+	.valikko-koti, .valikko-avaa {
+		display:block;
+		float:left;
+	}
+	.valikko-koti a, .valikko-avaa a {
+		display:block;
+		
+	}
+	.valikko-koti a:hover, .valikko-avaa a:hover {
+		
+		text-decoration:none;
+	}
+	
+	.valikko-koti {
+		width:20%;
+		margin:0 2% 0px 2%;
+	}
+	.valikko-avaa {
+		width:74%;
+		margin:0 2% 0px 0;
+	}
+	
+	.valikko-napit [class*="icon-"] {
+		vertical-align:0px;
+
+	}
+	
+	.valikko-avaa .icon-th-list {margin-right:4px;}
+
+	
+	.valikko-lista {
+		clear:both;
+		
+		position:relative;
+		z-index:200;
+		
+		display:none;
+	}
+	
+	.mobiililinkki { display:block; width:96%; margin:0 2% 5px 2%; }
+	
+	#nav li.level1 > .submenu {
+		display:block;
+		position:relative;
+		top:auto;
+		left:auto;
+		bottom:auto;
+		right:auto;
+		z-index:1;
+		width:auto;
+		
+		-moz-box-shadow: none;
+		-webkit-box-shadow: none;
+		box-shadow: none;
+	}
+	#nav .submenu .link:before { content: "- "; }
+	#nav .submenu .link { padding-left:20px; }
+	
+	#nav li.level1.hasSubItems {color:#f00 !important;}
+	
+}
+
+@media (min-width: 1025px) {
+	.valikko-lista {
+		display:block !important;
+	}
+}
+
+#copy .copy-body {padding:0px 5px 10px 5px;}
+.sitemap { float:left; }
+.copyright { float:right; }
+#copy {padding-top:10px;}
+
+.sitemap p, .sitemap ul{ margin:0px 0px 10px 0px; padding:0px; display:inline; }
+.sitemap li { margin:0px; list-style:none; display:inline; }
+.sitemap li:after { content:" | "; }
+.sitemap li:last-child:after { content: ""; }
+.sitemap, .copyright { font-size:0.8em; }
+
+ul.sivukartta {
+	margin:0px;
+	padding:0px;
+	list-style:none;
+}
+ul.sivukartta li {
+	margin:0px;
+	padding:2px 0 0 0;
+	list-style:none;
+}
+ul.sivukartta li a {
+	display:inline-block;
+	width:100%;
+	max-width:300px;
+	display:block;
+	line-height:30px;
+	padding:0px 5px;
+	background:#fff;
+	color:#222;
+	margin:0px;
+	border:1px solid #ddd;
+	font-size:12px;
+}
+ul.sivukartta li a:hover { text-indent:5px; background:#f5f5f5; }
+ul.sivukartta ul { margin:0px; padding:0px; list-style:none; background:url(../../../images/sitemap3.png) top left repeat-y; }
+ul.sivukartta ul li { padding-left:18px; background:url(../../../images/sitemap1.png) top left no-repeat; }
+ul.sivukartta ul li:last-child { }
+ul.sivukartta ul li a { color:#444; }
+
+
+
+
+div.pagination span a:hover {
+	text-decoration:none;
+}
+
+
+.lomake {width:100%;}
+.lomake .lomake-rivi {
+	width:100%;
+	margin-bottom:2px;
+}
+
+.lomake .lomake-rivi.otsikko-rivi { background:transparent; border:0px; }
+.lomake .lomake-rivi .lomake-otsikko h2 { padding:5px; margin:0px; }
+.lomake .lomake-rivi .label {
+	width:30%;
+	
+	margin-right:5%;
+	padding:5px 0;
+	
+	float:left;
+}
+.lomake .lomake-rivi .label .rauli { display:block; padding:0 5px; }
+.lomake .lomake-rivi .kentta { width:60%; float:left; padding:5px 0; }
+
+.lomake .formTextinput, .lomake input[type=text], .lomake .formEmailinput, .lomake .formTelinput { 
+	height:20px; 
+	line-height:20px;
+	width:100%;
+}
+.lomake select {width:100%; height:24px;}
+.lomake select option { line-height:24px; height:24px; }
+.lomake textarea { max-width:100%; width:100%; min-height:125px; }
+
+.lomake input:hover, .lomake textarea:hover {
+	-moz-box-shadow: 0px 0px 5px #aaa;
+	-webkit-box-shadow: 0px 0px 5px #aaa;
+	box-shadow: 0px 0px 5px #aaa;
+}
+.lomake input:focus, .lomake textarea:focus, .lomake input:active, .lomake textarea:active {
+	-moz-box-shadow: 0px 0px 8px #444;
+	-webkit-box-shadow: 0px 0px 8px #444;
+	box-shadow: 0px 0px 8px #444;
+	outline:0;
+}
+
+.lomake label.formCheckboxLabelHolder, .lomake label.formRadioLabelHolder {
+	display:inline-block;
+	line-height:14px;
+	margin-bottom:5px;
+	margin-right:10px;
+}
+
+.laheta button {
+	padding:8px 25px;
+}
+
+
+.formNotice { font-size:14px; }
+.formRequiredList { font-style:italic; }
+
+
+#gmap_canvas, #gmap_canvas2 {
+	width:100% !important;
+	height:350px !important;
+	margin-bottom:30px;
+	border-radius:10px;
+	border:1px solid #ccc;
+	overflow:hidden;
+}
+.googlemaps {border:0 !important; margin-bottom:0 !important; }
+.googlemaps .reittiHaku {
+	position:absolute; 
+	top:15px; 
+	max-width:1140px; 
+	width:100%;
+	left:50%; 
+	margin-left:-570px;
+	box-sizing: border-box;
+	padding:10px;
+}
+.googlemaps .reittiHaku h3 { display:inline-block; margin:0px; color:#fff;line-height:32px;}
+
+.googlemaps .reittiHaku .pad { padding:0px !important; }
+
+.googlemaps #rh-valinta select, .googlemaps #rh-valinta option {
+	width:100%;
+	padding:7px 4px 7px 2px;
+}
+
+.googlemaps #reittiAlku { width:100%; padding:8px 0px; text-indent:3px; }
+.googlemaps #reittiAlku.empty { color:#999; font-style:italic; }
+.googlemaps #haeReitti { width:100% !important; padding:4px 8px !important; text-align:left; }
+
+.reittiHaku .grid_12 {width:15% !important; float:left; display:inline-block;}
+
+#right .googlemaps .grid_6, #right .googlemaps .grid_4,
+#left .googlemaps .grid_6, #left .googlemaps .grid_4 {
+	float:none !important;
+	width:auto !important;
+	display:block !important;
+}
+
+.reittiHaku form {width:85%; float:left; displaY:inline-block;}
+.reittiHaku #rh-alku {width:75% !important;}
+.reittiHaku #rh-nappi {width:25% !important;}
+.reittiHaku #rh-nappi #haeReitti, .reittiHaku .avaa-kartta {
+	width:46% !important; margin:0px 2%; float:left; displaY:inline-block;
+	font-size:12px;	
+	border-radius:0; border:0;
+	background:#fff;
+	font-weight:normal;
+}
+.reittiHaku #rh-nappi br {displaY:none;}
+.reittiHaku input {border:0 !important;}
+#haeReitti, .avaa-kartta {height:32px; padding:0; text-align:center !important;}
+.avaa-kartta {line-height:32px;}
+#reittiPituus {position:absolute; right:25%; z-index:1500; top:16px;}
+
+.peitto {position:absolute; left:0; top:0; bottom:0; right:0; background:rgba(0,0,0,0.6);z-index:1000;}
+.peitto p {
+	color:#fff;
+	text-align:center;
+	line-height:50px;
+	height:50px;
+	position:absolute; left:0; right:0;
+	top:50%;
+	margin-top:-25px;
+	font-size:40px;
+}
+
+@media (max-width:1139px) {
+	.googlemaps .reittiHaku {width:100%; left:0; right:0; margin-left:0;}
+}
+
+@media (max-width:800px) {
+	.googlemaps .reittiHaku .grid_12 {display:none;}
+	.googlemaps .reittiHaku form {width:100%;}
+	.reittiHaku #rh-alku, .reittiHaku #rh-nappi {width:49% !important;
+		-moz-box-sizing: border-box;
+		-webkit-box-sizing: border-box;
+		box-sizing: border-box;
+		float:left;
+		display:inline-block;
+	}
+	
+}
+
+@media (max-width:480px) {
+	.googlemaps .reittiHaku {top:0;}
+	.reittiHaku #rh-alku, .reittiHaku #rh-nappi {
+		width:100% !important;
+		float:none;
+		display:block;
+	}
+	.reittiHaku #rh-nappi {margin-top:5px;}
+}

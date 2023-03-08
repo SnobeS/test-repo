@@ -1,0 +1,147 @@
+.onlymobile {display:none !important;}
+.onlysmall {display:none !important;}
+.onlytablet {display:none !important;}
+@media (max-width: 1024px) {
+	.notablet { display:none !important; }
+	.onlytablet {display:block !important;}	
+	.lomake label.formCheckboxLabelHolder, .lomake label.formRadioLabelHolder {margin-bottom:20px;}
+}
+@media (max-width: 1023px) {
+	body {font-size: 0.9em;line-height: 1.5em;}	
+	.onlymobile {display:none !important;}
+	.onlysmall {display:none !important;}
+}
+@media (max-width: 800px) {
+	body {font-size: 1em;-webkit-text-size-adjust: none;}
+	.nosmall { display:none !important; }
+	.onlysmall { display: block !important; }
+	.rivi, body, .container {width: 100%;min-width: 0 !important;margin-left: 0px;margin-right: 0px;padding-left: 0px;padding-right: 0px;}
+	.arkki {margin-left:0px;margin-right:0px;}
+	.grid_1, .grid_2, .grid_4, .grid_5, .grid_6, .grid_7, .grid_8, .grid_9, .grid_10, .grid_11, .grid_12, .grid_viisi, .grid_seitseman {
+		width: auto !important;
+		float: none !important;
+		margin-left: 0px;
+		margin-right: 0px;
+		clear:both;
+	}
+	.push_1, .push_2, .push_3, .push_4, .push_5, .push_6, .push_7, .push_8, .push_9, .push_10, .push_11, .push_12 {
+		margin-left:0px;	
+	}
+	.grid_1 {
+		width:16.65% !important;
+		float:left !important;
+		clear:none !important;
+	}
+	.grid_2, .grid_viisi {
+		width:33.3% !important;
+		float:left !important;
+		clear:none !important;
+	}
+	.grid_3, .grid_seitseman {
+		width: 49.95% !important;
+		float:left !important;
+		clear:none !important;
+	}
+	.grid_1.pull, .grid_2.pull, .grid_3.pull { float:right !important; }
+	#left.grid_1, #left.grid_2, #left.grid_3, #right.grid_1, #right.grid_2, #right.grid_3 {
+		float:none !important;
+		width:auto !important;
+		margin-left: 0px;
+		margin-right: 0px;
+		clear: both !important;
+	}
+	[class*="grid_"] [class*="grid_"] {
+		width:auto;
+		float:none;
+		margin-left:0px;
+		margin-right:0px;
+	}
+	[class*="grid_"] [class*="grid_"] .pad { padding:0px; }
+	.grid_1.centered, .grid_2.centered, .grid_3.centered { margin-left:auto; margin-right:auto; float:none; }
+	#left ul.menu li {
+		float:left;
+		
+		width:48%;
+		margin:0 1% 4px 1%;
+	}
+}
+@media (max-width:600px) {
+	#nav .arkki { background:none; padding:0px; margin-bottom:0px; }
+	#nav .nav-body { padding:0px; }
+	#nav .arkki, #nav .nav-fx1, #nav .nav-fx2 {
+		-moz-box-shadow: none;
+		-webkit-box-shadow: none;
+		box-shadow: none;
+	}
+	#nav ul li.level1 { 
+		float:none !important;
+		clear:both !important;
+		width:100% !important;
+		margin:0 !important;
+	}
+	#subnav { display:none; }
+	body {font-size:0.9em;line-height:1.5em;}
+	.quote {
+		font-size:0.9em;
+	}
+	.nomobile { display:none !important; }
+	.onlymobile {display:block !important;}
+	.grid_1 { width:33.3% !important; clear:none !important; }
+	.grid_2, .grid_viisi { width:49.95% !important; clear:none !important; }
+	.grid_3, .grid_seitseman { width:auto !important; float:none !important; margin-left:0px; margin-right:0px; clear:both; }
+	
+	.grid_1.pull, .grid_2.pull { float:right !important; }
+	
+	.pad { padding:7px !important; }
+}
+
+@media (max-width: 480px) {
+
+	body {font-size:0.8em;line-height:1.5em;}
+	.quote {font-size:0.9em;line-height:1.5em;}
+
+	#left ul.menu li {
+		float:none;
+		clear:both;
+		width:auto;
+		margin-left: 0px;
+		margin-right: 0px;
+	}
+	
+
+	.valikko-koti a, .valikko-avaa a { padding:8px 0 !important; }
+	table.hajoita, table.hajoita tbody, table.hajoita tr, table.hajoita td { 
+		display:block; float:none; clear:both; width:auto !important;
+	}
+	table.puolita, table.puolita tbody, table.puolita tr {
+		display:block; float:none; clear:both; width:auto !important; width:100%;
+	}
+	table.puolita td { width:44%; padding:3%; display:block; float:left; clear:none; border:none; }
+	.lomake .lomake-rivi .label, .lomake .lomake-rivi .kentta {
+		float:none;
+		width:100%;
+		
+		margin-left:0px;
+		margin-right:0px;
+	}
+	.lomake .lomake-rivi .label .rauli {
+		padding:0px;
+	}
+	.lomake .formTextinput, .lomake input[type=text], .lomake .formEmailinput, .lomake .formTelinput {
+		height:36px;
+		line-height:36px;
+	}
+	.quote {
+		float:none;
+		width:auto;
+		margin-left:0px;
+		margin-bottom:10px;
+		display:block;
+	}
+}
+
+@media (max-width: 380px) {
+	.grid_1, .grid_2, .grid_viisi, .grid_custom { 
+		width:auto !important; float:none !important; margin-left:0px; margin-right:0px; clear:both !important; 
+	}
+}
